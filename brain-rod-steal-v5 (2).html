@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MYSTERY BOX">
+<meta name="theme-color" content="#0a0c10">
+<title>🎁 ミステリーボックス強奪</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0c10;--sur:#12161e;--bdr:#1e2433;--acc:#ff2d55;--ac2:#00e5ff;--grn:#00cc44;--txt:#e8eaf0;--mut:#5a6080;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);}
+body{color:var(--txt);font-family:'Noto Sans JP',sans-serif;touch-action:none;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);}
+#game-screen{display:block;position:fixed;inset:0;}
+#game-canvas{display:block;width:100%;height:100%;}
+#game-hud{position:fixed;inset:0;pointer-events:none;z-index:20;}
+#hud-money{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px));background:rgba(0,0,0,.88);border:2px solid var(--grn);border-radius:10px;padding:8px 14px;font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--grn);text-shadow:0 0 10px var(--grn);line-height:1;}
+#hud-money small{font-size:11px;color:#aaa;display:block;font-family:'Noto Sans JP',sans-serif;font-weight:400;}
+#hud-status{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));background:rgba(0,0,0,.88);border:2px solid var(--bdr);border-radius:10px;padding:8px 13px;font-size:12px;text-align:right;line-height:2;}
+#hud-msg{position:absolute;top:35%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.92);border-radius:14px;padding:13px 26px;font-size:17px;font-weight:900;text-align:center;opacity:0;transition:opacity .25s;border:3px solid var(--acc);white-space:pre-line;pointer-events:none;}
+#hud-msg.show{opacity:1;}
+#hud-interact{position:absolute;bottom:calc(155px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);border-radius:20px;padding:7px 22px;font-size:14px;font-weight:700;border:2px solid var(--ac2);color:var(--ac2);opacity:0;transition:opacity .2s;white-space:nowrap;}
+#hud-interact.show{opacity:1;}
+#carry-hud{position:absolute;bottom:calc(160px + env(safe-area-inset-bottom,0px));left:12px;font-size:24px;line-height:1.5;opacity:0;transition:opacity .3s;background:rgba(0,0,0,.7);border-radius:8px;padding:6px 10px;}
+#carry-hud.show{opacity:1;}
+#sell-bar-wrap{position:absolute;bottom:calc(135px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);width:220px;display:none;flex-direction:column;align-items:center;gap:4px;}
+#sell-bar-wrap.show{display:flex;}
+#sell-bar-label{font-size:13px;font-weight:900;color:#ff4444;}
+#sell-bar-bg{width:100%;height:14px;background:rgba(0,0,0,.6);border-radius:7px;border:2px solid #ff4444;overflow:hidden;}
+#sell-bar{height:100%;background:linear-gradient(90deg,#ff4444,#ff8800);width:0%;transition:width .05s linear;}
+.hk{display:inline-block;background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px;font-weight:700;color:#fff;}
+#click-to-start{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:100;background:rgba(0,0,0,.82);}
+#click-to-start h2{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:5px;color:var(--acc);text-shadow:0 0 24px var(--acc);}
+#click-to-start p{font-size:14px;color:#bbb;text-align:center;line-height:2.2;}
+#click-to-start .start-btn{padding:14px 40px;border-radius:10px;border:none;background:var(--acc);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;cursor:pointer;box-shadow:0 0 28px rgba(255,45,85,.55);transition:all .15s;pointer-events:all;}
+#click-to-start .start-btn:hover{background:#ff5577;transform:scale(1.05);}
+
+/* ===== TOUCH UI ===== */
+#touch-ui{position:fixed;inset:0;z-index:25;pointer-events:none;}
+#joystick-zone{position:absolute;left:calc(10px + env(safe-area-inset-left,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));width:130px;height:130px;pointer-events:all;}
+#joystick-bg{position:absolute;inset:0;border-radius:50%;background:rgba(255,255,255,.09);border:2px solid rgba(255,255,255,.22);}
+#joystick-knob{position:absolute;width:50px;height:50px;border-radius:50%;background:rgba(0,229,255,.5);border:2px solid var(--ac2);top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 14px rgba(0,229,255,.4);}
+#btn-right{position:absolute;right:calc(10px + env(safe-area-inset-right,0px));bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:all;}
+.touch-btn{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;border:2px solid;cursor:pointer;user-select:none;background:rgba(0,0,0,.7);-webkit-tap-highlight-color:transparent;}
+#tbtn-e{border-color:var(--grn);color:var(--grn);box-shadow:0 0 12px rgba(0,204,68,.35);}
+#tbtn-f{border-color:#ff4444;color:#ff4444;box-shadow:0 0 12px rgba(255,68,68,.35);}
+#tbtn-j{border-color:var(--ac2);color:var(--ac2);box-shadow:0 0 12px rgba(0,229,255,.35);}
+#cam-zone{position:absolute;left:150px;right:calc(82px + env(safe-area-inset-right,0px));bottom:0;top:0;pointer-events:all;}
+/* PWA banner */
+#pwa-banner{display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;background:#12161e;border-top:1px solid var(--bdr);padding:10px 16px;align-items:center;gap:10px;font-size:13px;}
+#pwa-banner.show{display:flex;}
+#pwa-banner button{padding:6px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:700;}
+#pwa-install-btn{background:var(--acc);color:#fff;}
+#pwa-close-btn{background:rgba(255,255,255,.1);color:#aaa;}
+/* PC: hide touch UI */
+@media (pointer:fine){#joystick-zone,#btn-right,#cam-zone{display:none!important;}}
+/* Mobile: bottom hint higher */
+@media (pointer:coarse){.pc-only{display:none!important;}}
+</style>
+</head>
+<body>
+
+<div id="game-screen">
+  <canvas id="game-canvas"></canvas>
+  <div id="game-hud">
+    <div id="hud-money">$<span id="hud-money-val">0</span><small id="hud-per-sec">$0/s</small></div>
+    <div id="hud-status">📦 所持: <span id="hud-carry">0</span>/1<br>🏆 設置数: <span id="hud-deposits">0</span></div>
+    <div id="hud-msg"></div>
+    <div id="hud-interact"></div>
+    <div id="carry-hud"><div id="carry-hud-text">📦</div></div>
+    <div id="sell-bar-wrap">
+      <div id="sell-bar-label">🔥 F長押しで売却中...</div>
+      <div id="sell-bar-bg"><div id="sell-bar"></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- タッチ操作UI -->
+<div id="touch-ui">
+  <div id="cam-zone"></div>
+  <div id="joystick-zone">
+    <div id="joystick-bg"></div>
+    <div id="joystick-knob"></div>
+  </div>
+  <div id="btn-right">
+    <div class="touch-btn" id="tbtn-j">↑</div>
+    <div class="touch-btn" id="tbtn-e">E</div>
+    <div class="touch-btn" id="tbtn-f">F</div>
+  </div>
+</div>
+
+<!-- PWA install -->
+<div id="pwa-banner">
+  <span>📲 ホーム画面に追加でフルスクリーン！</span>
+  <button id="pwa-install-btn">インストール</button>
+  <button id="pwa-close-btn">✕</button>
+</div>
+
+<div id="click-to-start">
+  <h2>🎁 MYSTERY BOX 強奪</h2>
+  <div id="saved-badge" style="display:none;font-size:11px;color:var(--grn);background:rgba(0,204,68,.12);border:1px solid var(--grn);border-radius:6px;padding:3px 10px;">✅ セーブデータあり ($<span id="saved-money">0</span>)</div>
+  <p class="pc-only">
+    <span class="hk">WASD</span> 移動 &nbsp; <span class="hk">Space</span> ジャンプ &nbsp; <span class="hk">マウス</span> カメラ<br>
+    <span class="hk">E</span> ボックス回収 / 設置 &nbsp;&nbsp; <span class="hk">F 長押し</span> 売却<br>
+    🔴 ボタンに乗るだけでお金を回収
+  </p>
+  <p id="mobile-hint" style="display:none;font-size:12px;color:#bbb;text-align:center;line-height:2.1;">
+    左スティック: 移動 &nbsp; 中央ドラッグ: カメラ<br>
+    右下: E回収 / F売却 / ↑ジャンプ
+  </p>
+  <button class="start-btn" onclick="handleStart()">▶ ゲーム開始</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+// ================================================================
+//  SAVE / LOAD
+// ================================================================
+const SAVE_KEY='mbsteal_v1';
+function saveGame(){
+  if(!gameRunning) return;
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify({money:Math.floor(money),deposits,ts:Date.now()}));}catch(e){}
+}
+function loadSave(){try{const s=localStorage.getItem(SAVE_KEY);return s?JSON.parse(s):null;}catch(e){return null;}}
+
+// ================================================================
+//  PWA
+// ================================================================
+let _deferredInstall=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();_deferredInstall=e;document.getElementById('pwa-banner').classList.add('show');});
+document.addEventListener('DOMContentLoaded',()=>{
+  const ib=document.getElementById('pwa-install-btn');
+  const cb=document.getElementById('pwa-close-btn');
+  if(ib)ib.onclick=async()=>{if(!_deferredInstall)return;_deferredInstall.prompt();const{outcome}=await _deferredInstall.userChoice;if(outcome==='accepted')document.getElementById('pwa-banner').classList.remove('show');};
+  if(cb)cb.onclick=()=>document.getElementById('pwa-banner').classList.remove('show');
+});
+
+// ================================================================
+//  TOUCH CONTROLS
+// ================================================================
+const touch={joyActive:false,joyId:-1,joyOx:0,joyOy:0,dx:0,dy:0,camActive:false,camId:-1,camPx:0,camPy:0};
+const JOY_R=60;
+function initTouchControls(){
+  const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+  const mhint=document.getElementById('mobile-hint');
+  if(mhint&&isTouch) mhint.style.display='block';
+  const jz=document.getElementById('joystick-zone');
+  const knob=document.getElementById('joystick-knob');
+  const camZone=document.getElementById('cam-zone');
+  const tbtnE=document.getElementById('tbtn-e');
+  const tbtnF=document.getElementById('tbtn-f');
+  const tbtnJ=document.getElementById('tbtn-j');
+  function updateJoy(t){
+    let dx=t.clientX-touch.joyOx,dy=t.clientY-touch.joyOy;
+    const len=Math.sqrt(dx*dx+dy*dy);
+    if(len>JOY_R){dx=dx/len*JOY_R;dy=dy/len*JOY_R;}
+    touch.dx=dx/JOY_R;touch.dy=dy/JOY_R;
+    knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+  }
+  jz.addEventListener('touchstart',e=>{e.preventDefault();const t=e.changedTouches[0];touch.joyActive=true;touch.joyId=t.identifier;const r=jz.getBoundingClientRect();touch.joyOx=r.left+r.width/2;touch.joyOy=r.top+r.height/2;updateJoy(t);},{passive:false});
+  jz.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches){if(t.identifier===touch.joyId)updateJoy(t);}},{passive:false});
+  jz.addEventListener('touchend',e=>{e.preventDefault();for(const t of e.changedTouches){if(t.identifier===touch.joyId){touch.joyActive=false;touch.dx=0;touch.dy=0;knob.style.transform='translate(-50%,-50%)';}}},{passive:false});
+  camZone.addEventListener('touchstart',e=>{e.preventDefault();for(const t of e.changedTouches){if(!touch.camActive){touch.camActive=true;touch.camId=t.identifier;touch.camPx=t.clientX;touch.camPy=t.clientY;}}},{passive:false});
+  camZone.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches){if(t.identifier===touch.camId&&playerState){const dx=t.clientX-touch.camPx,dy=t.clientY-touch.camPy;playerState.yaw-=dx*0.005;playerState.pitch=Math.max(-.6,Math.min(1.0,playerState.pitch+dy*0.005));touch.camPx=t.clientX;touch.camPy=t.clientY;}}},{passive:false});
+  camZone.addEventListener('touchend',e=>{e.preventDefault();for(const t of e.changedTouches){if(t.identifier===touch.camId)touch.camActive=false;}},{passive:false});
+  if(tbtnE)tbtnE.addEventListener('touchstart',e=>{e.preventDefault();eAction();},{passive:false});
+  if(tbtnJ){tbtnJ.addEventListener('touchstart',e=>{e.preventDefault();keys['Space']=true;},{passive:false});tbtnJ.addEventListener('touchend',e=>{e.preventDefault();keys['Space']=false;},{passive:false});}
+  if(tbtnF){tbtnF.addEventListener('touchstart',e=>{e.preventDefault();keys['KeyF']=true;},{passive:false});tbtnF.addEventListener('touchend',e=>{e.preventDefault();keys['KeyF']=false;},{passive:false});}
+  document.body.addEventListener('touchmove',e=>{if(e.target===document.body)e.preventDefault();},{passive:false});
+}
+
+// ================================================================
+//  CONSTANTS & MAP DATA
+// ================================================================
+const GRID=32, TILE=4;
+const mapData=[[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"gate_start","height":1,"gateId":"B"},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},null,{"type":"base","height":5},null,{"type":"base","height":5},null,{"type":"base","height":5},null,{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},{"type":"spawn","height":3},null,null,null,null,null,null,{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"grass","height":5},null,null,null,null,null,null,{"type":"spawn","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"grass","height":5},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},null,{"type":"base","height":5},null,{"type":"base","height":5},null,{"type":"base","height":5},null,{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"base","height":2},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},{"type":"spawn","height":2},null,null,null,null,null,{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},null,null,null,null,null,null,{"type":"spawn","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"base","height":2},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":3},{"type":"grass","height":2},{"type":"grass","height":3},{"type":"grass","height":3},{"type":"grass","height":3},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},{"type":"spawn","height":2},null,null,null,null,null,null,{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},null,null,null,null,null,null,{"type":"spawn","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"button","height":1},null,{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"base","height":2},null,{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"building_gray","height":2},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":5},{"type":"dirt","height":2},{"type":"grass","height":5},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"grass","height":1},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"gate_end","height":1,"gateId":"B"},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5}],[{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5},{"type":"wall","height":5}]];
+
+// ================================================================
+//  RARITY & BOX DEFINITIONS (200 types)
+// ================================================================
+const RARITIES=[
+  {name:'Common',   color:'#aaaaaa', emissive:'#111111', glowColor:0xaaaaaa, glowInt:0.6, glowRange:4,  incomePerSec:2,   sellMult:1.0,  edgeColor:0xcccccc, chance:44, isGod:false, isLegendary:false},
+  {name:'Uncommon', color:'#33ff66', emissive:'#003311', glowColor:0x33ff66, glowInt:0.9, glowRange:5,  incomePerSec:6,   sellMult:1.5,  edgeColor:0x88ffaa, chance:27, isGod:false, isLegendary:false},
+  {name:'Rare',     color:'#3399ff', emissive:'#001133', glowColor:0x3399ff, glowInt:1.2, glowRange:6,  incomePerSec:15,  sellMult:2.5,  edgeColor:0x88ccff, chance:15, isGod:false, isLegendary:false},
+  {name:'Epic',     color:'#cc44ff', emissive:'#220033', glowColor:0xcc44ff, glowInt:1.8, glowRange:8,  incomePerSec:40,  sellMult:5.0,  edgeColor:0xee88ff, chance:9,  isGod:false, isLegendary:false},
+  {name:'Legendary',color:'#ffaa00', emissive:'#331100', glowColor:0xffaa00, glowInt:2.5, glowRange:12, incomePerSec:120, sellMult:12.0, edgeColor:0xffdd44, chance:4,  isGod:false, isLegendary:true},
+  {name:'GOD',      color:'#ffffff', emissive:'#221100', glowColor:0xffffff, glowInt:3.5, glowRange:18, incomePerSec:500, sellMult:50.0, edgeColor:0xffffff, chance:1,  isGod:true,  isLegendary:false},
+];
+
+// 240 box personalities (40 per rarity × 6)
+function genBoxTypes(){
+  const types=[];
+  const themes=[
+    // Common
+    [0x888888,0x777777,0x999999,0x666666,0x555555,0xaaaaaa,0xbbbbbb,0xcccccc,0x444444,0x333333,
+     0x8a7a6a,0x7a6a5a,0x5a7a4a,0x4a6a8a,0x9a8a7a,0x6a8a9a,0x7a9a6a,0x8a6a9a,0x9a6a6a,0x6a9a9a,
+     0x4a4a8a,0x8a4a4a,0x4a8a4a,0x8a8a4a,0x4a8a8a,0x8a4a8a,0x6a6a4a,0x4a6a6a,0x6a4a6a,0x5a8a5a,
+     0x7a5a5a,0x5a7a5a,0x5a5a7a,0x7a7a5a,0x5a7a7a,0x7a5a7a,0x6a5a5a,0x5a6a5a,0x5a5a6a,0x6a6a5a],
+    // Uncommon
+    [0x22cc44,0x33dd55,0x44ee66,0x55bb33,0x66cc44,0x77dd55,0x88ee66,0x99cc33,0xaadd44,0xbbee55,
+     0x22bb88,0x33cc99,0x44ddaa,0x55eebb,0x66ccaa,0x77ddbb,0x88eecc,0x99ccbb,0xaaddcc,0xbbeedd,
+     0x2288cc,0x3399dd,0x44aaee,0x55bbcc,0x6699dd,0x77aaee,0x8888cc,0x9999dd,0xaaaaee,0xbbbbcc,
+     0x88cc22,0x99dd33,0xaaee44,0xbbcc55,0x99cc66,0xaadd77,0xbbee88,0xcccc33,0xdddd44,0xeeee55],
+    // Rare
+    [0x2255ff,0x3366ff,0x4477ff,0x5588ff,0x6699ff,0x77aaff,0x88bbff,0x99ccff,0x1144ee,0x2255dd,
+     0xff2255,0xff3366,0xff4477,0xff5588,0xff6699,0xff77aa,0xff88bb,0xff99cc,0xee1144,0xdd2255,
+     0x00ccff,0x11ddff,0x22eeff,0x33ffee,0x44ffdd,0x55ffcc,0x00bbee,0x11ccdd,0x22ddcc,0x33eebb,
+     0xff6600,0xff7711,0xff8822,0xff9933,0xffaa44,0xffbb55,0xee5500,0xdd6611,0xcc7722,0xbb8833],
+    // Epic
+    [0xaa00ff,0xbb11ff,0xcc22ff,0xdd33ff,0xee44ff,0xff55ff,0x9900ee,0x8800dd,0x7700cc,0x6600bb,
+     0xff0088,0xff1199,0xff22aa,0xff33bb,0xff44cc,0xff55dd,0xee0077,0xdd0066,0xcc0055,0xbb0044,
+     0x8800ff,0x9911ff,0xaa22ff,0xbb33ff,0xcc44ff,0xdd55ff,0x7700ee,0x6600dd,0x5500cc,0x4400bb,
+     0xff44ff,0xff55ee,0xff66dd,0xff77cc,0xff88bb,0xff99aa,0xee44ee,0xdd55dd,0xcc66cc,0xbb77bb],
+    // Legendary
+    [0xffaa00,0xffbb11,0xffcc22,0xffdd33,0xffee44,0xffff55,0xee9900,0xdd8800,0xcc7700,0xbb6600,
+     0xff5500,0xff6611,0xff7722,0xff8833,0xff9944,0xffaa55,0xee4400,0xdd5511,0xcc6622,0xbb7733,
+     0xffd700,0xffe011,0xffee22,0xffff33,0xeecc00,0xddbb00,0xccaa00,0xbb9900,0xaa8800,0x997700,
+     0xff8800,0xff9911,0xffaa22,0xffbb33,0xffcc44,0xffdd55,0xee7700,0xdd8811,0xcc9922,0xbbaa33],
+    // GOD (white/rainbow — base white, rainbow applied in mesh)
+    [0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,
+     0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,
+     0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,
+     0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff,0xffffff],
+  ];
+  const suffixes=['α','β','γ','δ','ε','Ω','X','Z','★','♦','∞','Σ','Φ','Ψ','Λ'];
+  let id=0;
+  RARITIES.forEach((rar,ri)=>{
+    for(let i=0;i<40;i++){
+      const baseHex=themes[ri][i];
+      const suffix=suffixes[i%suffixes.length]+(Math.floor(i/suffixes.length)||'');
+      types.push({
+        id: id++,
+        name: `${rar.name} ${suffix}`,
+        rarity: ri,
+        rarityData: rar,
+        boxColor: baseHex,
+        emissiveColor: parseInt(rar.emissive.slice(1),16),
+        glowColor: rar.glowColor,
+        glowInt: rar.glowInt + Math.random()*0.3,
+        glowRange: rar.glowRange,
+        incomePerSec: rar.incomePerSec + Math.floor(Math.random()*rar.incomePerSec*0.3),
+        sellMult: rar.sellMult,
+        edgeColor: rar.edgeColor,
+        accumulated: 0,
+      });
+    }
+  });
+  return types;
+}
+const BOX_TYPES=genBoxTypes();
+
+function pickRandomBoxType(){
+  const roll=Math.random()*100;
+  let sum=0;
+  for(let i=0;i<RARITIES.length;i++){
+    sum+=RARITIES[i].chance;
+    if(roll<sum){
+      const start=i*40;
+      return BOX_TYPES[start+Math.floor(Math.random()*40)];
+    }
+  }
+  return BOX_TYPES[0];
+}
+
+// ================================================================
+//  GAME ENGINE STATE
+// ================================================================
+// Helper: hue(0-360) to THREE.js hex color integer
+function hueToHex(h){
+  const s=1,l=0.55;
+  const a=s*Math.min(l,1-l);
+  const f=n=>{const k=(n+h/30)%12;const c=l-a*Math.max(Math.min(k-3,9-k,1),-1);return Math.round(255*c);}
+  return (f(0)<<16)|(f(8)<<8)|f(4);
+}
+let gameRunning=false;
+let gameRenderer,gameScene,gameCamera;
+let playerGroup=null, playerState=null;
+let flowingBlocks=[], placedBlocks=[];
+let bases=[], spinMeshes=[], floorButtonObjects=[];
+const keys={};
+let mouseLocked=false;
+const clock=new THREE.Clock();
+let totalTime=0;
+let deposits=0, money=0;
+let carrying=false, carriedBlock=null;
+let nearBlock=null, nearBase=false;
+let gameLanes=[];
+// F-key sell
+let fHoldTime=0;
+const SELL_HOLD_DURATION=2.0;
+let nearPlacedBase=null; // base with placed block near player
+
+// ================================================================
+//  VALIDATION & SCREEN TRANSITION
+// ================================================================
+// ================================================================
+//  COMPUTE LANES
+// ================================================================
+function computeLanes(){
+  const orig=-(GRID/2)*TILE;
+  const wx=c=>orig+c*TILE+TILE/2,wz=r=>orig+r*TILE+TILE/2;
+  const starts={},ends={};
+  for(let r=0;r<mapData.length;r++){
+    for(let c=0;c<(mapData[r]||[]).length;c++){
+      const cell=mapData[r][c];if(!cell)continue;
+      const id=cell.gateId||('_'+r+'_'+c);
+      if(cell.type==='gate_start'){(starts[id]=starts[id]||[]).push({x:wx(c),z:wz(r)});}
+      else if(cell.type==='gate_end'){(ends[id]=ends[id]||[]).push({x:wx(c),z:wz(r)});}
+    }
+  }
+  const lanes=[];
+  new Set([...Object.keys(starts),...Object.keys(ends)]).forEach(id=>{
+    const ss=starts[id]||[],es=ends[id]||[];
+    for(let i=0;i<Math.min(ss.length,es.length);i++)
+      lanes.push({worldStart:{x:ss[i].x,z:ss[i].z},worldEnd:{x:es[i].x,z:es[i].z},spawnTimer:0,spawnInterval:3});
+  });
+  if(!lanes.length){const h=(GRID/2)*TILE;lanes.push({worldStart:{x:-h+TILE*2,z:0},worldEnd:{x:h-TILE*2,z:0},spawnTimer:0,spawnInterval:3});}
+  return lanes;
+}
+
+function handleStart(){
+  document.getElementById('click-to-start').style.display='none';
+  const sv=loadSave();
+  if(sv){money=sv.money||0;deposits=sv.deposits||0;}
+  initTouchControls();
+  startGame();
+}
+function startGame(){initGame();}
+
+function returnToEditor(){location.reload();}
+
+function gkd(e){keys[e.code]=true;}
+function gku(e){keys[e.code]=false;}
+function gmm(e){
+  if(!mouseLocked||!playerState)return;
+  playerState.yaw-=e.movementX*.0025;
+  // マウス上 = 下を向く、マウス下 = 上を向く
+  playerState.pitch=Math.max(-.6,Math.min(1.0,playerState.pitch+e.movementY*.0025));
+}
+
+// ================================================================
+//  INIT GAME
+// ================================================================
+function initGame(){
+  gameRunning=true;totalTime=0;
+  flowingBlocks=[];placedBlocks=[];bases=[];spinMeshes=[];gameLanes=[];floorButtonObjects=[];
+  carrying=false;carriedBlock=null;nearBlock=null;nearBase=false;nearPlacedBase=null;
+  money=0;deposits=0;fHoldTime=0;
+  clock.getDelta();
+
+  const gc=document.getElementById('game-canvas');
+  gc.width=window.innerWidth;gc.height=window.innerHeight;
+  gameRenderer=new THREE.WebGLRenderer({canvas:gc,antialias:true});
+  gameRenderer.setSize(window.innerWidth,window.innerHeight);
+  const _isMobile=window.innerWidth<768||('ontouchstart' in window);
+  gameRenderer.shadowMap.enabled=!_isMobile;
+  gameRenderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  gameRenderer.setPixelRatio(Math.min(window.devicePixelRatio,_isMobile?1.5:2));
+
+  gameScene=new THREE.Scene();
+  gameScene.background=new THREE.Color(0x111122);
+  gameScene.fog=new THREE.Fog(0x111122,_isMobile?40:55,_isMobile?100:160);
+
+  gameScene.add(new THREE.AmbientLight(0xffffff,.55));
+  const sun=new THREE.DirectionalLight(0xffeedd,1.0);
+  sun.position.set(40,80,30);sun.castShadow=true;
+  sun.shadow.mapSize.width=sun.shadow.mapSize.height=2048;
+  sun.shadow.camera.left=-100;sun.shadow.camera.right=100;
+  sun.shadow.camera.top=100;sun.shadow.camera.bottom=-100;
+  sun.shadow.camera.far=300;gameScene.add(sun);
+
+  gameCamera=new THREE.PerspectiveCamera(65,gc.width/gc.height,.1,300);
+  gameScene.add(gameCamera);
+
+  const M={
+    grass:new THREE.MeshLambertMaterial({color:0x2d8a2d}),
+    dirt:new THREE.MeshLambertMaterial({color:0x6b3a1f}),
+    bg:new THREE.MeshLambertMaterial({color:0x888899}),
+    bgd:new THREE.MeshLambertMaterial({color:0x555566}),
+    by:new THREE.MeshLambertMaterial({color:0xddaa00}),
+    byd:new THREE.MeshLambertMaterial({color:0xaa7700}),
+    bb:new THREE.MeshLambertMaterial({color:0x8B5E3C}),
+    bbd:new THREE.MeshLambertMaterial({color:0x3d2010}),
+    wall:new THREE.MeshLambertMaterial({color:0x445566}),
+    base_g:new THREE.MeshLambertMaterial({color:0x00cc44}),
+    base_pad:new THREE.MeshLambertMaterial({color:0x00ff44,emissive:0x003300}),
+    glass:new THREE.MeshLambertMaterial({color:0x88aacc,transparent:true,opacity:.35}),
+    white:new THREE.MeshLambertMaterial({color:0xffffff}),
+    dark:new THREE.MeshLambertMaterial({color:0x222233}),
+    wheel:new THREE.MeshLambertMaterial({color:0xffdd00,emissive:0x443300}),
+    spawn_m:new THREE.MeshLambertMaterial({color:0x00e5ff,emissive:0x003344,transparent:true,opacity:.6}),
+    gate_s:new THREE.MeshLambertMaterial({color:0xff6600,emissive:0x331100}),
+    gate_e:new THREE.MeshLambertMaterial({color:0x9900ff,emissive:0x220044}),
+    red_lane:new THREE.MeshLambertMaterial({color:0xbb1111}),
+    carpet:new THREE.MeshLambertMaterial({color:0xcc1122}),
+    btn_off:new THREE.MeshLambertMaterial({color:0xff3300,emissive:0x220000}),
+    btn_on:new THREE.MeshLambertMaterial({color:0xff8800,emissive:0x332200}),
+  };
+
+  function addBox(w,h,d,mat,x,y,z){
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+    m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;gameScene.add(m);return m;
+  }
+
+  const colliders=[];
+  let spawnPos={x:0,z:0};
+  const orig=-(GRID/2)*TILE;
+  const wx=c=>orig+c*TILE+TILE/2, wz=r=>orig+r*TILE+TILE/2;
+
+  // ---- Build map geometry ----
+  for(let r=0;r<GRID;r++){
+    for(let c=0;c<GRID;c++){
+      const cell=mapData[r][c]; if(!cell) continue;
+      const X=wx(c), Z=wz(r);
+      switch(cell.type){
+        case 'grass': addBox(TILE,.3,TILE,M.grass,X,.15,Z); break;
+        case 'dirt':  addBox(TILE,0.3,TILE,M.dirt,X,.15,Z); break;
+        case 'building_gray':{
+          const fl=cell.height||3;
+          for(let f=0;f<fl;f++) addBox(TILE-.2,3.8,TILE-.2,f%2===0?M.bg:M.bgd,X,.3+f*4+1.9,Z);
+          addBox(TILE+.2,.5,TILE+.2,M.bgd,X,.3+fl*4+.25,Z);
+          if(fl>=2) addBox(1.8,1.4,.15,M.glass,X,2.5,Z+TILE/2);
+          colliders.push({cx:X,cz:Z,hw:TILE/2,hd:TILE/2}); break;
+        }
+        case 'building_yellow':{
+          const fl=cell.height||2,bh=fl*4;
+          addBox(TILE-.2,bh,TILE-.2,M.by,X,.3+bh/2,Z);
+          addBox(TILE+.2,.5,TILE+.2,M.byd,X,.3+bh+.25,Z);
+          for(let f=0;f<fl;f++) addBox(TILE,.25,.15,M.dark,X,.3+f*4+2,Z+TILE/2);
+          colliders.push({cx:X,cz:Z,hw:TILE/2,hd:TILE/2}); break;
+        }
+        case 'building_brown':{
+          const fl=cell.height||2,bh=fl*3.5;
+          addBox(TILE-.2,bh,TILE-.2,M.bb,X,.3+bh/2,Z);
+          addBox(TILE+.4,.5,TILE+.4,M.bbd,X,.3+bh+.25,Z);
+          colliders.push({cx:X,cz:Z,hw:TILE/2,hd:TILE/2}); break;
+        }
+        case 'wall':{
+          const wh=cell.height*1.5;
+          addBox(TILE-.2,wh,TILE-.2,M.wall,X,.3+wh/2,Z);
+          colliders.push({cx:X,cz:Z,hw:TILE/2,hd:TILE/2}); break;
+        }
+        case 'gate_start':
+        case 'gate_end':{
+          const gm=cell.type==='gate_start'?M.gate_s:M.gate_e;
+          addBox(TILE,.25,TILE,gm,X,.15,Z);
+          addBox(.45,5.5,.45,gm,X-TILE/2+.25,2.85,Z);
+          addBox(.45,5.5,.45,gm,X+TILE/2-.25,2.85,Z);
+          const gl=new THREE.PointLight(cell.type==='gate_start'?0xff6600:0x9900ff,2,12);
+          gl.position.set(X,4,Z);gameScene.add(gl);
+          break;
+        }
+        case 'base':{
+          addBox(TILE+1,.4,TILE+1,M.base_g,X,.2,Z);
+          const pad=new THREE.Mesh(new THREE.PlaneGeometry(TILE-.4,TILE-.4),M.base_pad);
+          pad.rotation.x=-Math.PI/2;pad.position.set(X,.42,Z);gameScene.add(pad);
+          for(const[dx,dz]of[[-1.5,-1.5],[1.5,-1.5],[-1.5,1.5],[1.5,1.5]])
+            addBox(.3,2.5,.3,M.white,X+dx,1.55,Z+dz);
+          const bl=new THREE.PointLight(0x00ff44,1.5,14);bl.position.set(X,3,Z);gameScene.add(bl);
+          bases.push({x:X,z:Z,hasBlock:false,block:null,income:0,accMoney:0,light:bl,padMesh:pad});
+          break;
+        }
+        case 'button':{
+          // Floor button platform
+          const btnBase=addBox(TILE-.2,.25,TILE-.2,M.dark,X,.15,Z);
+          const btnTop=addBox(TILE-.5,.22,TILE-.5,M.btn_off,X,.36,Z);
+          const btnLight=new THREE.PointLight(0xff3300,.8,6);
+          btnLight.position.set(X,1.2,Z);gameScene.add(btnLight);
+          floorButtonObjects.push({x:X,z:Z,mesh:btnTop,light:btnLight,matOff:M.btn_off,matOn:M.btn_on,pressed:false,pressTimer:0});
+          break;
+        }
+        case 'spawn':{
+          spawnPos={x:X,z:Z};
+          const sm=new THREE.Mesh(new THREE.PlaneGeometry(TILE-.5,TILE-.5),M.spawn_m);
+          sm.rotation.x=-Math.PI/2;sm.position.set(X,.42,Z);gameScene.add(sm); break;
+        }
+        case 'spin_wheel':{
+          addBox(.5,5,.5,M.dark,X,2.5,Z);
+          const wm=new THREE.Mesh(new THREE.TorusGeometry(2.5,.3,8,16),M.wheel);
+          wm.position.set(X,5,Z);gameScene.add(wm);spinMeshes.push(wm);
+          for(let i=0;i<6;i++){
+            const sp=new THREE.Mesh(new THREE.BoxGeometry(.15,5,.15),M.wheel);
+            sp.position.set(X,5,Z);sp.rotation.z=(i/6)*Math.PI*2;gameScene.add(sp);spinMeshes.push(sp);
+          }break;
+        }
+      }
+    }
+  }
+
+  // ---- Build lane geometry ----
+  gameLanes=computeLanes();
+  gameLanes.forEach(lane=>{
+    const sx=lane.worldStart.x, sz=lane.worldStart.z;
+    const ex=lane.worldEnd.x, ez=lane.worldEnd.z;
+    const len=Math.sqrt((ex-sx)**2+(ez-sz)**2);
+    const mx=(sx+ex)/2, mz=(sz+ez)/2;
+    const angle=Math.atan2(ex-sx, ez-sz);
+
+    // Red carpet lane floor
+    const carpetGeo=new THREE.BoxGeometry(3.6,.15,len);
+    const carpetMesh=new THREE.Mesh(carpetGeo, M.carpet);
+    carpetMesh.position.set(mx,.08,mz);
+    carpetMesh.rotation.y=angle;
+    carpetMesh.receiveShadow=true;
+    gameScene.add(carpetMesh);
+
+    // Carpet border stripes
+    const borderMat=new THREE.MeshLambertMaterial({color:0xffcc00});
+    for(const side of[-1,1]){
+      const border=new THREE.Mesh(new THREE.BoxGeometry(.2,.16,len),borderMat);
+      border.position.set(mx,.09,mz);
+      border.rotation.y=angle;
+      // offset perpendicular
+      const perpX=Math.cos(angle)*side*1.7;
+      const perpZ=-Math.sin(angle)*side*1.7;
+      border.position.x+=perpX; border.position.z+=perpZ;
+      gameScene.add(border);
+    }
+
+    // Red lane floor strip (underneath carpet)
+    const laneGeo=new THREE.BoxGeometry(3.2,.22,len);
+    const laneMesh=new THREE.Mesh(laneGeo, M.red_lane);
+    laneMesh.position.set(mx,.09,mz);
+    laneMesh.rotation.y=angle;
+    laneMesh.receiveShadow=true;
+    gameScene.add(laneMesh);
+
+    // Gate beams
+    const startBeam=new THREE.Mesh(new THREE.BoxGeometry(TILE*3,.4,.4),M.gate_s);
+    startBeam.position.set(sx,5.8,sz);gameScene.add(startBeam);
+    const endBeam=new THREE.Mesh(new THREE.BoxGeometry(TILE*3,.4,.4),M.gate_e);
+    endBeam.position.set(ex,5.8,ez);gameScene.add(endBeam);
+    const perpAngle=angle+Math.PI/2;
+    startBeam.rotation.y=perpAngle; endBeam.rotation.y=perpAngle;
+
+    lane.spawnTimer=0;
+    lane.spawnInterval=3; // 3秒おき
+  });
+
+  // Initial spawn
+  gameLanes.forEach(lane=>spawnFlowingBlock(lane));
+
+  // ---- Minecraft-style player ----
+  playerGroup=new THREE.Group();
+  const bodyMat=new THREE.MeshLambertMaterial({color:0x4488ff});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.7,1.0,.4),bodyMat);
+  body.position.y=.5;body.castShadow=true;playerGroup.add(body);
+  const headMat=new THREE.MeshLambertMaterial({color:0xffc8a0});
+  const head=new THREE.Mesh(new THREE.BoxGeometry(.72,.72,.72),headMat);
+  head.position.y=1.38;head.castShadow=true;playerGroup.add(head);
+  const eyeM=new THREE.MeshLambertMaterial({color:0x223366});
+  const eyeL=new THREE.Mesh(new THREE.BoxGeometry(.19,.19,.05),eyeM);eyeL.position.set(-.16,1.42,.38);playerGroup.add(eyeL);
+  const eyeR=new THREE.Mesh(new THREE.BoxGeometry(.19,.19,.05),eyeM);eyeR.position.set(.16,1.42,.38);playerGroup.add(eyeR);
+  const mouthM=new THREE.MeshLambertMaterial({color:0x553322});
+  const mouth=new THREE.Mesh(new THREE.BoxGeometry(.3,.1,.05),mouthM);mouth.position.set(0,1.24,.38);playerGroup.add(mouth);
+  const armMat=new THREE.MeshLambertMaterial({color:0x3377ee});
+  const skinMat=new THREE.MeshLambertMaterial({color:0xffc8a0});
+  const armLPivot=new THREE.Group();armLPivot.position.set(-.5,.98,0);
+  const armLMesh=new THREE.Mesh(new THREE.BoxGeometry(.28,.9,.28),armMat);armLMesh.position.y=-.45;armLMesh.castShadow=true;armLPivot.add(armLMesh);
+  const handL=new THREE.Mesh(new THREE.BoxGeometry(.28,.28,.28),skinMat);handL.position.y=-.95;armLPivot.add(handL);
+  playerGroup.add(armLPivot);
+  const armRPivot=new THREE.Group();armRPivot.position.set(.5,.98,0);
+  const armRMesh=new THREE.Mesh(new THREE.BoxGeometry(.28,.9,.28),armMat);armRMesh.position.y=-.45;armRMesh.castShadow=true;armRPivot.add(armRMesh);
+  const handR=new THREE.Mesh(new THREE.BoxGeometry(.28,.28,.28),skinMat);handR.position.y=-.95;armRPivot.add(handR);
+  playerGroup.add(armRPivot);
+  const legMat=new THREE.MeshLambertMaterial({color:0x223399});
+  const shoeMat=new THREE.MeshLambertMaterial({color:0x111111});
+  const legLPivot=new THREE.Group();legLPivot.position.set(-.18,.0,0);
+  const legLMesh=new THREE.Mesh(new THREE.BoxGeometry(.3,.9,.3),legMat);legLMesh.position.y=-.45;legLMesh.castShadow=true;legLPivot.add(legLMesh);
+  const shoeL=new THREE.Mesh(new THREE.BoxGeometry(.32,.2,.38),shoeMat);shoeL.position.set(0,-.95,.04);legLPivot.add(shoeL);
+  playerGroup.add(legLPivot);
+  const legRPivot=new THREE.Group();legRPivot.position.set(.18,.0,0);
+  const legRMesh=new THREE.Mesh(new THREE.BoxGeometry(.3,.9,.3),legMat);legRMesh.position.y=-.45;legRMesh.castShadow=true;legRPivot.add(legRMesh);
+  const shoeR=new THREE.Mesh(new THREE.BoxGeometry(.32,.2,.38),shoeMat);shoeR.position.set(0,-.95,.04);legRPivot.add(shoeR);
+  playerGroup.add(legRPivot);
+
+  playerGroup.position.set(spawnPos.x,2,spawnPos.z);
+  gameScene.add(playerGroup);
+
+  playerState={
+    pos:new THREE.Vector3(spawnPos.x,2,spawnPos.z),
+    vel:new THREE.Vector3(),
+    yaw:0, pitch:.4,
+    onGround:false,
+    colliders,
+    armLPivot,armRPivot,legLPivot,legRPivot,
+  };
+
+
+  document.addEventListener('keydown',gkd);
+  document.addEventListener('keyup',gku);
+  document.addEventListener('mousemove',gmm);
+  document.addEventListener('keydown',eKeyHandler);
+  document.addEventListener('keyup',fKeyUpHandler);
+  gc.addEventListener('click',()=>gc.requestPointerLock());
+  document.addEventListener('pointerlockchange',()=>{mouseLocked=document.pointerLockElement===gc;});
+
+  updateGameHUD();
+  gameMsg('[クリックorタップでロック]\n🎁流れるボックスにEで回収！\n🏁基地(緑パッド)に納品しよう！\nF長押しで売却','#00e5ff');
+  setInterval(()=>{if(gameRunning)saveGame();},10000);
+  gameLoop();
+}
+
+// ================================================================
+//  KEY HANDLERS
+// ================================================================
+function eAction(){
+  if(!gameRunning||!playerState) return;
+  const ps=playerState;
+  if(carrying&&carriedBlock){
+    for(const base of bases){
+      const dx=ps.pos.x-base.x,dz=ps.pos.z-base.z;
+      if(Math.sqrt(dx*dx+dz*dz)<TILE*1.8){
+        if(base.hasBlock){gameMsg('⚠️ この基地は満杯！','#ff4444');return;}
+        placeBoxAtBase(carriedBlock,base);deposits++;
+        carrying=false;carriedBlock=null;
+        document.getElementById('carry-hud').classList.remove('show');
+        updateGameHUD();saveGame();return;
+      }
+    }
+  }
+  if(!carrying){
+    for(const base of bases){
+      if(!base.hasBlock)continue;
+      const dx=ps.pos.x-base.x,dz=ps.pos.z-base.z;
+      if(Math.sqrt(dx*dx+dz*dz)<TILE*1.8){
+        const block=base.block;
+        base.hasBlock=false;base.block=null;base.income=0;base.accMoney=0;
+        block.placed=false;block.pickedUp=false;block.carried=true;
+        block.mesh.material=new THREE.MeshLambertMaterial({color:block.boxType.boxColor,emissive:block.boxType.emissiveColor});
+        block.glow.color.setHex(block.boxType.glowColor);block.glow.intensity=block.boxType.glowInt;
+        if(block.labelSprite)block.labelSprite.visible=true;
+        carrying=true;carriedBlock=block;
+        document.getElementById('carry-hud').classList.add('show');
+        updateCarryHUD();
+        gameMsg('📦 基地から回収！','#ffcc00');updateGameHUD();return;
+      }
+    }
+  }
+  if(!carrying&&nearBlock){
+    const b=nearBlock;
+    b.pickedUp=true;b.carried=true;b.placed=false;
+    carrying=true;carriedBlock=b;
+    b.mesh.material=new THREE.MeshLambertMaterial({color:0xffcc00,emissive:0x331100});
+    b.glow.color.setHex(0xffcc00);b.glow.intensity=2;
+    if(b.labelSprite)b.labelSprite.visible=false;
+    document.getElementById('carry-hud').classList.add('show');
+    updateCarryHUD();
+    gameMsg(`🎁 [${b.boxType.rarityData.name}] ${b.boxType.name}\n$${b.boxType.incomePerSec}/s 獲得！`,'#ffcc00');
+    updateGameHUD();
+  }
+}
+function eKeyHandler(e){if(e.code==='KeyE')eAction();}
+
+function fKeyUpHandler(e){
+  if(e.code==='KeyF'){
+    fHoldTime=0;
+    document.getElementById('sell-bar-wrap').classList.remove('show');
+    document.getElementById('sell-bar').style.width='0%';
+  }
+}
+
+function activateButton(btn){
+  btn.pressed=true;btn.pressTimer=0.5;
+  btn.mesh.material=btn.matOn;
+  btn.light.color.setHex(0xff8800);btn.light.intensity=1.5;
+  // Find adjacent base and collect money
+  let collected=0;
+  for(const base of bases){
+    const dx=btn.x-base.x, dz=btn.z-base.z;
+    if(Math.sqrt(dx*dx+dz*dz)<TILE*1.5&&base.hasBlock&&base.accMoney>0){
+      collected+=base.accMoney;
+      money+=base.accMoney;
+      base.accMoney=0;
+      // flash the pad
+      base.padMesh&&(base.padMesh._flash=0.5);
+    }
+  }
+  if(collected>0){
+    gameMsg(`💰 ボタン回収！ +$${Math.floor(collected).toLocaleString()}`,'#ffdd00');
+    updateGameHUD();
+  } else {
+    gameMsg('🔴 ボタンを踏んだが回収できるお金がない','#ff8800');
+  }
+}
+
+function placeBoxAtBase(block, base){
+  base.hasBlock=true;
+  base.block=block;
+  base.income=block.boxType.incomePerSec;
+  base.accMoney=0;
+  block.group.position.set(base.x,1.8,base.z);
+  block.mesh.material=new THREE.MeshLambertMaterial({color:block.boxType.boxColor, emissive:block.boxType.emissiveColor});
+  block.glow.color.setHex(block.boxType.glowColor);block.glow.intensity=block.boxType.glowInt*1.5;
+  if(block.labelSprite) block.labelSprite.visible=true;
+  block.placed=true;
+  block.placeBase=base;
+  placedBlocks.push({block,base});
+  const rn=block.boxType.rarityData.name;
+  const sellVal=Math.floor(block.boxType.incomePerSec*30*block.boxType.sellMult);
+  gameMsg(`✅ [${rn}] 設置完了！\n$${block.boxType.incomePerSec}/s 稼ぎ始めた！\nF長押しで売却 ($${sellVal.toLocaleString()})`,'#00ff88');
+}
+
+function gameMsg(text,color='#fff'){
+  const el=document.getElementById('hud-msg');
+  el.textContent=text;el.style.borderColor=color;el.style.color=color;
+  el.classList.add('show');clearTimeout(el._t);
+  el._t=setTimeout(()=>el.classList.remove('show'),4000);
+}
+
+const RARITY_COLORS_CSS=['#aaaaaa','#33ff66','#3399ff','#cc44ff','#ffaa00','#ffffff'];
+
+// ================================================================
+//  GLOBAL BOX FACTORY (ゲームループからも呼べるようグローバルに定義)
+// ================================================================
+function makeLabel(text1,text2,color1){
+  const c=document.createElement('canvas');c.width=256;c.height=80;
+  const x=c.getContext('2d');
+  x.clearRect(0,0,256,80);
+  x.fillStyle='rgba(0,0,0,0.75)';
+  x.beginPath();if(x.roundRect)x.roundRect(4,4,248,72,10);else x.rect(4,4,248,72);x.fill();
+  x.font='bold 22px sans-serif';x.textAlign='center';x.fillStyle=color1;
+  x.fillText(text1,128,32);
+  x.font='16px sans-serif';x.fillStyle='#ffffff';
+  x.fillText(text2,128,56);
+  const tex=new THREE.CanvasTexture(c);
+  const mat=new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true});
+  const sp=new THREE.Sprite(mat);sp.scale.set(3.2,1.0,1);
+  return sp;
+}
+
+function makeMysteryBox(boxType){
+  const bt=boxType||pickRandomBoxType();
+  const group=new THREE.Group();
+  let faceM;
+  if(bt.rarityData.isGod){
+    faceM=new THREE.MeshLambertMaterial({color:0xff0000,emissive:0x110000});
+  } else {
+    faceM=new THREE.MeshLambertMaterial({color:bt.boxColor,emissive:bt.emissiveColor});
+  }
+  const geo=new THREE.BoxGeometry(1.1,1.1,1.1);
+  const mesh=new THREE.Mesh(geo,faceM);
+  mesh.castShadow=true;
+  group.add(mesh);
+  const edges=new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:bt.edgeColor}));
+  mesh.add(edges);
+  const glow=new THREE.PointLight(bt.glowColor,bt.glowInt,bt.glowRange);
+  glow.position.set(0,0,0);mesh.add(glow);
+  let glow2=null;
+  if(bt.rarityData.isGod){
+    glow2=new THREE.PointLight(0x00ffff,2.0,16);
+    glow2.position.set(0,0,0);mesh.add(glow2);
+  }
+  const orbs=[];
+  if(bt.rarityData.isLegendary){
+    for(let oi=0;oi<6;oi++){
+      const og=new THREE.SphereGeometry(0.18,8,8);
+      const om=new THREE.MeshLambertMaterial({color:0xffdd44,emissive:0x332200});
+      const o=new THREE.Mesh(og,om);
+      const ol=new THREE.PointLight(0xffaa00,0.7,3.5);
+      o.add(ol);group.add(o);
+      orbs.push({mesh:o,baseAngle:(oi/6)*Math.PI*2,radius:1.5});
+    }
+  }
+  const rc=RARITY_COLORS_CSS[bt.rarity]||'#fff';
+  const labelSprite=makeLabel(`[${bt.rarityData.name}]`,`$${bt.incomePerSec}/s`,rc);
+  labelSprite.position.set(0,1.5,0);
+  group.add(labelSprite);
+  return{group,mesh,glow,glow2,orbs,boxType:bt,labelSprite};
+}
+
+function spawnFlowingBlock(lane){
+  const{group,mesh,glow,glow2,orbs,boxType,labelSprite}=makeMysteryBox(pickRandomBoxType());
+  group.position.set(lane.worldStart.x,1.8,lane.worldStart.z);
+  gameScene.add(group);
+  flowingBlocks.push({
+    group,mesh,glow,glow2,orbs,boxType,labelSprite,lane,
+    progress:0,
+    speed:0.035,
+    carried:false,pickedUp:false,placed:false,
+  });
+}
+function updateCarryHUD(){
+  if(!carrying||!carriedBlock) return;
+  const bt=carriedBlock.boxType;
+  const rc=RARITY_COLORS_CSS[bt.rarity];
+  document.getElementById('carry-hud-text').innerHTML=
+    `📦 <span style="color:${rc};font-weight:900">[${bt.rarityData.name}]</span><br>${bt.name}<br><span style="color:#aaa;font-size:11px">$${bt.incomePerSec}/s</span>`;
+}
+
+function updateGameHUD(){
+  document.getElementById('hud-money-val').textContent=Math.floor(money).toLocaleString();
+  // total income = sum of all placed boxes
+  const totalIncome=bases.reduce((s,b)=>s+(b.income||0),0);
+  document.getElementById('hud-per-sec').textContent=`$${totalIncome}/s`;
+  document.getElementById('hud-carry').textContent=carrying?1:0;
+  document.getElementById('hud-deposits').textContent=deposits;
+}
+
+function checkCol(x,z){
+  if(!playerState) return null;
+  for(const c of playerState.colliders)
+    if(Math.abs(x-c.cx)<c.hw+.55&&Math.abs(z-c.cz)<c.hd+.55) return c;
+  return null;
+}
+
+// ================================================================
+//  GAME LOOP
+// ================================================================
+function gameLoop(){
+  if(!gameRunning) return;
+  requestAnimationFrame(gameLoop);
+  const delta=Math.min(clock.getDelta(),.05);
+  totalTime+=delta;
+  const ps=playerState; if(!ps) return;
+
+  // ---- Movement ----
+  const mv=new THREE.Vector3();
+  if(keys['KeyW']||keys['ArrowUp'])    mv.z+=1;
+  if(keys['KeyS']||keys['ArrowDown'])  mv.z-=1;
+  if(keys['KeyA']||keys['ArrowLeft'])  mv.x+=1;
+  if(keys['KeyD']||keys['ArrowRight']) mv.x-=1;
+  if(typeof touch!=='undefined'&&touch.joyActive&&(Math.abs(touch.dx)>0.05||Math.abs(touch.dy)>0.05)){
+    mv.z-=touch.dy; mv.x-=touch.dx;
+  }
+  const moving=mv.length()>0;
+  mv.normalize().multiplyScalar(9*delta);
+  mv.applyEuler(new THREE.Euler(0,ps.yaw,0));
+
+  const hm=GRID/2*TILE-.7;
+  let nx=Math.max(-hm,Math.min(hm,ps.pos.x+mv.x));
+  let nz=Math.max(-hm,Math.min(hm,ps.pos.z+mv.z));
+  if(!checkCol(nx,nz)){ps.pos.x=nx;ps.pos.z=nz;}
+  else{if(!checkCol(nx,ps.pos.z))ps.pos.x=nx;else if(!checkCol(ps.pos.x,nz))ps.pos.z=nz;}
+
+  ps.vel.y-=22*delta;
+  ps.pos.y+=ps.vel.y*delta;
+  if(ps.pos.y<=2){ps.pos.y=2;ps.vel.y=0;ps.onGround=true;}else ps.onGround=false;
+  if(keys['Space']&&ps.onGround){ps.vel.y=9.5;ps.onGround=false;}
+
+  // ---- F key: sell hold (base設置中 or 手持ち) ----
+  if(keys['KeyF']){
+    let bestBase=null, bestDist=Infinity;
+    // 設置済みの基地を探す
+    for(const base of bases){
+      if(!base.hasBlock) continue;
+      const dx=ps.pos.x-base.x,dz=ps.pos.z-base.z;
+      const d=Math.sqrt(dx*dx+dz*dz);
+      if(d<TILE*1.8&&d<bestDist){bestBase=base;bestDist=d;}
+    }
+    // 手持ちも売却対象
+    const sellTarget = bestBase ? bestBase.block : (carrying&&carriedBlock ? carriedBlock : null);
+    if(sellTarget){
+      fHoldTime+=delta;
+      const pct=Math.min(fHoldTime/SELL_HOLD_DURATION,1);
+      document.getElementById('sell-bar-wrap').classList.add('show');
+      document.getElementById('sell-bar').style.width=(pct*100)+'%';
+      if(fHoldTime>=SELL_HOLD_DURATION){
+        const block=sellTarget;
+        const sellVal=Math.floor(block.boxType.incomePerSec*30*block.boxType.sellMult);
+        money+=sellVal;
+        gameScene.remove(block.group);
+        if(bestBase){
+          bestBase.hasBlock=false;bestBase.block=null;bestBase.income=0;bestBase.accMoney=0;
+        }
+        if(block===carriedBlock){
+          carrying=false;carriedBlock=null;
+          document.getElementById('carry-hud').classList.remove('show');
+        }
+        const idx=flowingBlocks.indexOf(block);
+        if(idx>-1) flowingBlocks.splice(idx,1);
+        fHoldTime=0;
+        keys['KeyF']=false;
+        document.getElementById('sell-bar-wrap').classList.remove('show');
+        document.getElementById('sell-bar').style.width='0%';
+        gameMsg(`💸 売却！ +$${sellVal.toLocaleString()}\n[${block.boxType.rarityData.name}] ${block.boxType.name}`,'#ffaa00');
+        updateGameHUD();saveGame();
+      }
+    } else {
+      fHoldTime=0;
+      document.getElementById('sell-bar-wrap').classList.remove('show');
+    }
+  } else {
+    if(fHoldTime>0){
+      fHoldTime=0;
+      document.getElementById('sell-bar-wrap').classList.remove('show');
+      document.getElementById('sell-bar').style.width='0%';
+    }
+  }
+
+  // ---- Limb animation ----
+  const walkSwing=moving?Math.sin(totalTime*8)*.65:0;
+  if(carrying){
+    const holdAngle=-1.2+Math.sin(totalTime*1.5)*.04;
+    ps.armLPivot.rotation.x=holdAngle;ps.armRPivot.rotation.x=holdAngle;
+    ps.armLPivot.rotation.z=.18;ps.armRPivot.rotation.z=-.18;
+  } else {
+    ps.armLPivot.rotation.x=walkSwing;ps.armRPivot.rotation.x=-walkSwing;
+    ps.armLPivot.rotation.z=0;ps.armRPivot.rotation.z=0;
+  }
+  ps.legLPivot.rotation.x=-walkSwing;ps.legRPivot.rotation.x=walkSwing;
+
+  playerGroup.position.copy(ps.pos);
+  playerGroup.rotation.y=ps.yaw;
+
+  // ---- TPS Camera ----
+  const camDist=7, camHeight=4;
+  const camX=ps.pos.x-Math.sin(ps.yaw)*camDist;
+  const camZ=ps.pos.z-Math.cos(ps.yaw)*camDist;
+  const camY=ps.pos.y+camHeight+ps.pitch*2;
+  gameCamera.position.set(camX,camY,camZ);
+  gameCamera.lookAt(ps.pos.x,ps.pos.y+1.0,ps.pos.z);
+
+  // ---- Carried box ----
+  if(carrying&&carriedBlock){
+    const fwd=new THREE.Vector3(Math.sin(playerGroup.rotation.y),0,Math.cos(playerGroup.rotation.y));
+    carriedBlock.group.position.set(
+      ps.pos.x+fwd.x*.9,
+      ps.pos.y+1.6+Math.sin(totalTime*2)*.05,
+      ps.pos.z+fwd.z*.9
+    );
+    carriedBlock.mesh.rotation.y=totalTime*2;
+    carriedBlock.mesh.rotation.x=totalTime*.5;
+  }
+
+  // ---- Lane block spawning: 3秒毎・個数制限なし ----
+  gameLanes.forEach(lane=>{
+    lane.spawnTimer+=delta;
+    if(lane.spawnTimer>=lane.spawnInterval){
+      lane.spawnTimer=0;
+      spawnFlowingBlock(lane); // グローバル関数を呼ぶ
+    }
+  });
+
+  // ---- Update flowing blocks ----
+  nearBlock=null;
+  let nearDist=Infinity;
+  const godHue=(totalTime*60)%360; // rainbow cycle for GOD boxes
+  flowingBlocks.forEach((b,i)=>{
+    // ---- Placed at base ----
+    if(b.placed){
+      b.mesh.rotation.y+=delta*1.2;
+      b.mesh.rotation.x+=delta*.7;
+      b.group.position.y=1.8+Math.sin(totalTime*2+i)*.18;
+      b.glow.intensity=b.boxType.glowInt*.8+Math.sin(totalTime*3+i)*.25*b.boxType.glowInt;
+      // GOD rainbow
+      if(b.boxType.rarityData.isGod){
+        const h=hueToHex((godHue+i*30)%360);
+        b.mesh.material.color.setHex(h);
+        b.mesh.material.emissive.setHex(h>>1&0x7f7f7f);
+        b.glow.color.setHex(h);
+        if(b.glow2) b.glow2.color.setHex(hueToHex((godHue+180+i*30)%360));
+      }
+      // Legendary orbs
+      if(b.orbs&&b.orbs.length){
+        b.orbs.forEach((orb,oi)=>{
+          const ang=orb.baseAngle+totalTime*1.2+(oi*0.4);
+          const hy=Math.sin(totalTime*0.8+oi*1.1)*0.6;
+          orb.mesh.position.set(Math.cos(ang)*orb.radius, hy, Math.sin(ang)*orb.radius);
+        });
+      }
+      // label always faces camera while placed
+      if(b.labelSprite){
+        b.labelSprite.position.set(0,1.6,0);
+      }
+      return;
+    }
+    if(b.carried) return;
+    if(b.pickedUp&&!b.carried) return;
+
+    // ---- Flowing ----
+    b.progress+=b.speed*delta;
+    // エンドゲートに到達したらシーンから除去（ループしない）
+    if(b.progress>=1){
+      gameScene.remove(b.group);
+      b.pickedUp=true; // 流れ終わりフラグ（update skipに利用）
+      return;
+    }
+    const sx=b.lane.worldStart.x,sz=b.lane.worldStart.z;
+    const ex=b.lane.worldEnd.x,ez=b.lane.worldEnd.z;
+    const bx=sx+(ex-sx)*b.progress;
+    const bz=sz+(ez-sz)*b.progress;
+    const by=1.8+Math.sin(totalTime*2+i)*.12;
+    b.group.position.set(bx,by,bz);
+    b.mesh.rotation.y+=delta*.8;
+    b.mesh.rotation.x=Math.sin(totalTime*.7+i)*.12;
+    b.glow.intensity=b.boxType.glowInt*.8+Math.sin(totalTime*3+i)*.3*b.boxType.glowInt;
+
+    // GOD rainbow for flowing
+    if(b.boxType.rarityData.isGod){
+      const h=hueToHex((godHue+i*45)%360);
+      b.mesh.material.color.setHex(h);
+      b.mesh.material.emissive.setHex(h>>2&0x3f3f3f);
+      b.glow.color.setHex(h);
+      if(b.glow2) b.glow2.color.setHex(hueToHex((godHue+180+i*45)%360));
+    }
+
+    // Legendary orbs while flowing
+    if(b.orbs&&b.orbs.length){
+      b.orbs.forEach((orb,oi)=>{
+        const ang=orb.baseAngle+totalTime*1.5+(oi*0.3);
+        const hy=Math.sin(totalTime+oi*1.1)*0.5;
+        orb.mesh.position.set(Math.cos(ang)*orb.radius, hy, Math.sin(ang)*orb.radius);
+      });
+    }
+
+    // Label always visible and faces camera
+    if(b.labelSprite) b.labelSprite.visible=true;
+
+    // Proximity check
+    const ddx=ps.pos.x-bx, ddz=ps.pos.z-bz;
+    const dist=Math.sqrt(ddx*ddx+ddz*ddz);
+    if(dist<TILE*1.4&&dist<nearDist){nearBlock=b;nearDist=dist;}
+  });
+
+  // ---- Cleanup expired blocks (エンドゲート到達済み) ----
+  for(let i=flowingBlocks.length-1;i>=0;i--){
+    const b=flowingBlocks[i];
+    if(b.pickedUp&&!b.carried&&!b.placed) flowingBlocks.splice(i,1);
+  }
+
+  // ---- Passive income to bases ----
+  for(const base of bases){
+    if(base.hasBlock&&base.income>0){
+      base.accMoney+=base.income*delta;
+      base.light.intensity=1.5+Math.sin(totalTime*3+base.x)*0.4;
+    }
+    if(base.padMesh&&base.padMesh._flash>0){
+      base.padMesh._flash-=delta;
+      base.padMesh.material.emissive&&(base.padMesh.material.emissive.setHex(base.padMesh._flash>0?0x004400:0x003300));
+    }
+  }
+
+  // ---- Floor button: 乗るだけで発動 ----
+  for(const btn of floorButtonObjects){
+    const bdx=ps.pos.x-btn.x, bdz=ps.pos.z-btn.z;
+    const onBtn=Math.sqrt(bdx*bdx+bdz*bdz)<TILE*0.8;
+    if(onBtn&&!btn.pressed){
+      btn.pressed=true;btn.pressTimer=0.8;
+      btn.mesh.material=btn.matOn;
+      btn.light.color.setHex(0xff8800);btn.light.intensity=2.0;
+      let collected=0;
+      for(const base of bases){
+        const bddx=btn.x-base.x,bddz=btn.z-base.z;
+        if(Math.sqrt(bddx*bddx+bddz*bddz)<TILE*1.5&&base.hasBlock&&base.accMoney>0){
+          collected+=base.accMoney;
+          money+=base.accMoney;
+          base.accMoney=0;
+          if(base.padMesh) base.padMesh._flash=0.5;
+        }
+      }
+      if(collected>0){
+        gameMsg(`💰 踏んで回収！ +$${Math.floor(collected).toLocaleString()}`,'#ffdd00');
+        updateGameHUD();
+      }
+    }
+    if(btn.pressed){
+      btn.pressTimer-=delta;
+      if(btn.pressTimer<=0){
+        btn.pressed=false;
+        btn.mesh.material=btn.matOff;
+        btn.light.color.setHex(0xff3300);btn.light.intensity=0.8;
+      }
+    }
+  }
+
+  // ---- Interact hint ----
+  let hint='';
+  nearPlacedBase=null;
+  if(!carrying&&nearBlock){
+    const bt=nearBlock.boxType;
+    const rc=RARITY_COLORS_CSS[bt.rarity];
+    hint=`[ E ] 🎁 <span style="color:${rc};font-weight:900">[${bt.rarityData.name}]</span> ${bt.name} を回収 ($${bt.incomePerSec}/s)`;
+  } else if(carrying&&carriedBlock){
+    const nearEmpty=bases.find(b=>Math.sqrt((ps.pos.x-b.x)**2+(ps.pos.z-b.z)**2)<TILE*1.8&&!b.hasBlock);
+    const nearFull=bases.find(b=>Math.sqrt((ps.pos.x-b.x)**2+(ps.pos.z-b.z)**2)<TILE*1.8&&b.hasBlock);
+    if(nearEmpty) hint='[ E ] 🏁 ボックスを設置 | [ F長押し ] 手持ちを売却';
+    else if(nearFull) hint='⚠️ この基地は満杯！ | [ F長押し ] 手持ちを売却';
+    else hint='[ F長押し ] 手持ちボックスを売却';
+  }
+  if(!carrying){
+    const nearFullBase=bases.find(b=>Math.sqrt((ps.pos.x-b.x)**2+(ps.pos.z-b.z)**2)<TILE*1.8&&b.hasBlock);
+    if(nearFullBase){
+      nearPlacedBase=nearFullBase;
+      const acc=Math.floor(nearFullBase.accMoney);
+      if(!hint) hint=`[ E ] 📦 基地から回収 | [ F長押し ] 売却 | 溜まり: $${acc.toLocaleString()}`;
+    }
+  }
+  const nearBtn=floorButtonObjects.find(btn=>{const dx=ps.pos.x-btn.x,dz=ps.pos.z-btn.z;return Math.sqrt(dx*dx+dz*dz)<TILE*1.0;});
+  if(nearBtn) hint='🔴 ボタンの上に乗るとお金回収！';
+
+  const hi=document.getElementById('hud-interact');
+  hi.innerHTML=hint; hi.className=hint?'show':'';
+
+  // ---- Spin wheels ----
+  spinMeshes.forEach(m=>m.rotation.z=totalTime*1.5);
+
+  // ---- Periodic HUD update ----
+  if(Math.floor(totalTime)>Math.floor(totalTime-delta)) updateGameHUD();
+
+  gameRenderer.render(gameScene,gameCamera);
+}
+
+// ================================================================
+//  MINIMAP
+// ================================================================
+
+
+
+window.addEventListener('resize',()=>{
+  if(gameRenderer&&gameCamera){
+    gameRenderer.setSize(window.innerWidth,window.innerHeight);
+    gameCamera.aspect=window.innerWidth/window.innerHeight;
+    gameCamera.updateProjectionMatrix();
+  }
+});
+
+// ================================================================
+//  INIT CHECK (saved data badge on start screen)
+// ================================================================
+(function(){
+  const sv=loadSave();
+  if(sv){
+    const badge=document.getElementById('saved-badge');
+    const sm=document.getElementById('saved-money');
+    if(badge){badge.style.display='block';}
+    if(sm){sm.textContent=Math.floor(sv.money||0).toLocaleString();}
+  }
+  // Prevent pull-to-refresh on mobile
+  document.body.addEventListener('touchmove',e=>{e.preventDefault();},{passive:false});
+})();
+</script>
+</body>
+</html>
